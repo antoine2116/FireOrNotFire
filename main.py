@@ -1,10 +1,5 @@
-from datetime import datetime
-
 import torch
-import torchvision
 import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
-import numpy as np
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
@@ -23,9 +18,6 @@ def main():
     trainloader = DataLoader(traindata, batch_size=4, shuffle=True, pin_memory=True, drop_last=False)
     dataset_size = len(traindata)
 
-    since = datetime.now()
-
-    best_acc = 0.0
     criterion = nn.CrossEntropyLoss()
 
     model = VGG16()
@@ -62,16 +54,10 @@ def main():
 
             epoch_loss = running_loss / dataset_size
             epoch_acc = running_corrects.double() / dataset_size
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                'train', epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format('train', epoch_loss, epoch_acc))
         print()
 
-    time_elapsed = datetime.now() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-
-
-
-
+    torch.save(model.state_dict(), 'fire_or_not_fire.pth')
 
 
 if __name__ == '__main__':
