@@ -8,6 +8,11 @@ from model import VGG16
 
 
 def main():
+    batch_size = 4
+    epochs = 10
+
+    classes = ["Fire", "NoFire"]
+
     transform = transforms.Compose([
         transforms.Resize([256, 256]),
         transforms.ToTensor(),
@@ -15,8 +20,11 @@ def main():
     ])
 
     traindata = ImageFolder('Dataset', transform=transform)
-    trainloader = DataLoader(traindata, batch_size=4, shuffle=True, pin_memory=True, drop_last=False)
+    trainloader = DataLoader(traindata, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=False)
     dataset_size = len(traindata)
+
+    testdata = ImageFolder('Test_Dataset', transform=transform)
+    testloader = DataLoader(testdata, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=False)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -25,8 +33,8 @@ def main():
 
     device = torch.device("cpu")
 
-    for epoch in range(2):
-        print('Epoch {}/{}'.format(epoch, 2 - 1))
+    for epoch in range(epochs):
+        print('Epoch {}/{}'.format(epoch, epochs - 1))
         print('-' * 10)
         # Each epoch has a training and validation phase
         model.train()  # Set model to training mode
@@ -58,6 +66,34 @@ def main():
         print()
 
     torch.save(model.state_dict(), 'fire_or_not_fire.pth')
+
+    with torch.no_grad():
+        n_correct = 0
+        n_samples = 0
+        n_class_correct = [0 for i in range(10)]
+        n_class_samples = [0 for i in range(10)]
+        for images, labels in testloader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            # max returns (value ,index)
+            _, predicted = torch.max(outputs, 1)
+            n_samples += labels.size(0)
+            n_correct += (predicted == labels).sum().item()
+
+            for i in range(batch_size):
+                label = labels[i]
+                pred = predicted[i]
+                if label == pred:
+                    n_class_correct[label] += 1
+                n_class_samples[label] += 1
+
+        acc = 100.0 * n_correct / n_samples
+        print(f'Accuracy of the network: {acc} %')
+
+        for i in range(10):
+            acc = 100.0 * n_class_correct[i] / n_class_samples[i]
+            print(f'Accuracy of {classes[i]}: {acc} %')
 
 
 if __name__ == '__main__':
