@@ -25,13 +25,9 @@ class VGG16(nn.Module):
 
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        # self.fc1 = nn.Linear(25088, 4096)
-        # self.fc2 = nn.Linear(4096, 4096)
-        # self.fc3 = nn.Linear(4096, 10)
-
-        self.fc1 = nn.Linear(32768, 4096)
+        self.fc1 = nn.Linear(25088, 4096)
         self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 1000)
+        self.fc3 = nn.Linear(4096, 10)
 
     def forward(self, x):
         x = F.relu(self.conv1_1(x))
