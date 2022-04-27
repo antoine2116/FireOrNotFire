@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torchvision.transforms as transforms
 from matplotlib import pyplot as plt
@@ -8,90 +9,119 @@ from torch.optim import Adam
 
 from VGG16 import VGG16
 
-lossArray = []
-accArray = []
+class_names = ['Fire', 'NoFire']
 
 batch_size = 10
-epochs = 100
+EPOCHS = 100
 PATH = "fire_or_not_fire.pth"
 
 
 def main():
-    classes = ["Fire", "NoFire"]
-
     transform = transforms.Compose([
-        transforms.Resize([224, 244]),
+        transforms.Resize(size=(256, 256)),
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(20),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.4, 0.4, 0.4], std=[0.2, 0.2, 0.2])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     train_data = ImageFolder('Dataset', transform=transform)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=False)
+
+    valid_data = ImageFolder('Test_Dataset', transform=transform)
+    valid_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=False)
     dataset_size = len(train_data)
 
-    criterion = nn.CrossEntropyLoss()
-
     model = VGG16()
-    model.load_state_dict(torch.load(PATH))
 
-    optimizer = Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    use_cuda = torch.cuda.is_available()
 
-    device = torch.device("cuda")
-    model.to(device)
+    if use_cuda:
+        model = model.cuda()
 
-    best_accuracy = 0.0
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
-    for epoch in range(epochs):
-        print('Epoch {}/{}'.format(epoch, epochs))
-        print('-' * 10)
+    train_accuracy_list = []
+    train_loss_list = []
+    valid_accuracy_list = []
+    valid_loss_list = []
+
+    valid_loss_min = np.Inf
+
+    for epoch in range(1, (EPOCHS + 1)):
+        train_loss = 0.0
+        valid_loss = 0.0
+        train_acc = 0.0
+        valid_acc = 0.0
 
         model.train()
 
-        running_loss = 0.0
-        running_corrects = 0
-        epoch_loss = 0
-        epoch_acc = 0
+        for batch_idx, (data, target) in enumerate(train_loader):
 
-        # Iterate over data.
-        for inputs, labels in train_loader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            # zero the parameter gradients
+            if use_cuda:
+                data, target = data.cuda(), target.cuda()
+
             optimizer.zero_grad()
-            # forward
-            # track history if only in train
-            outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
-            loss = criterion(outputs, labels)
-            # backward + optimize only if in training phase
+            output = model(data)
+            _, preds = torch.max(output, 1)
+            loss = criterion(output, target)
             loss.backward()
             optimizer.step()
 
-            # statistics
-            running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(preds == labels.data)
+            train_acc = train_acc + torch.sum(preds == target.data)
+            train_loss = train_loss + ((1 / (batch_idx + 1)) * (loss.data - train_loss))
 
-            epoch_loss = (running_loss / dataset_size) * 100
-            epoch_acc = (running_corrects / dataset_size) * 100
+            model.eval()
+        for batch_idx, (data, target) in enumerate(valid_loader):
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format('train', epoch_loss, epoch_acc))
+            if use_cuda:
+                data, target = data.cuda(), target.cuda()
+            output = model(data)
+            _, preds = torch.max(output, 1)
+            loss = criterion(output, target)
 
-        print('Epoch stats : Loss = {}, Accuracy = {}'.format(epoch_loss, epoch_acc))
+            valid_acc = valid_acc + torch.sum(preds == target.data)
+            valid_loss = valid_loss + ((1 / (batch_idx + 1)) * (loss.data - valid_loss))
 
-        lossArray.append(epoch_loss)
-        accArray.append(epoch_acc.cpu())
+        train_loss = train_loss / len(train_loader.dataset)
+        valid_loss = valid_loss / len(valid_loader.dataset)
+        train_acc = train_acc / len(train_loader.dataset)
+        valid_acc = valid_acc / len(valid_loader.dataset)
 
-        if epoch_acc > best_accuracy:
-            best_accuracy = epoch_acc
+        train_accuracy_list.append(train_acc)
+        train_loss_list.append(train_loss)
+        valid_accuracy_list.append(valid_acc)
+        valid_loss_list.append(valid_loss)
+
+        print(
+            'Epoch: {} \tTraining Acc: {:6f} \tTraining Loss: {:6f} \tValidation Acc: {:6f} \tValidation Loss: {:.6f}'.format(
+                epoch,
+                train_acc,
+                train_loss,
+                valid_acc,
+                valid_loss
+            ))
+
+        if valid_loss <= valid_loss_min:
+            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
+                valid_loss_min,
+                valid_loss))
             torch.save(model.state_dict(), PATH)
+            valid_loss_min = valid_loss
 
-        # Plot
-        epochs_array = [i for i in range(0, epoch + 1)]
-        plt.plot(epochs_array, lossArray, label="Loss")
-        plt.plot(epochs_array, accArray, label="Accuracy")
-        plt.xlabel("Epochs #")
-        plt.ylabel("%")
-        plt.legend()
+        plt.figure()
+
+        plt.plot(train_accuracy_list.cpu(), label="train_acc")
+        plt.plot(valid_accuracy_list.cpu(), label="valid_acc")
+
+        plt.title("Accuracy")
+        plt.xlabel("Epoch #")
+        plt.ylabel("Accuracy")
+        plt.legend(loc="lower left")
+
         plt.show()
 
 
