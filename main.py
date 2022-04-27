@@ -7,10 +7,10 @@ from matplotlib import pyplot as plt
 
 from torch import nn
 from VGG16 import VGG16
+from model_prof import FireNet
 
-
-model = VGG16()
-model.load_state_dict(torch.load('fire_or_not_fire.pth'))
+model = FireNet()
+model.load_state_dict(torch.load('fire_or_not_fire_b100_lr0005.pth'))
 model.eval()
 
 
@@ -23,23 +23,16 @@ def get_fps(video):
         return int(video.get(cv2.CAP_PROP_FPS))
 
 
-def evaluate_fire(frame):
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize([224, 244]),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.4, 0.4, 0.4], std=[0.2, 0.2, 0.2])
-    ])
+def evaluate_fire(image):
+    prediction_transform = transforms.Compose([transforms.Resize(size=(64, 64)),
+                                               transforms.ToTensor(),
+                                               transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                    std=[0.229, 0.224, 0.225])])
 
-    with torch.no_grad():
-        image = transform(frame)
-        image = image.unsqueeze(0)
-
-        output = model(image.float())
-
-        prediction = nn.functional.softmax(output, dim=None)
-
-    return prediction[0][0].item() * 100.00
+    image = prediction_transform(image)[:3, :, :].unsqueeze(0)
+    output = model(image)
+    pred = nn.functional.softmax(output)
+    return pred[0][1].item() * 100
 
 
 def main():
@@ -55,7 +48,9 @@ def main():
             break
 
         if count % fps == 0:
-            prob = evaluate_fire(frame)
+            image = frame.copy()
+            image = transforms.ToPILImage()(image)
+            prob = evaluate_fire(image)
 
         cv2.putText(frame, "Fire prob: %.3f" % prob, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.imshow('frame', frame)
