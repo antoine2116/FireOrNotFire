@@ -11,7 +11,7 @@ BATCH_SIZE = 32
 EPOCHS = 100
 LEARNING_RATE = 0.0005
 
-PATH = "fire_or_not_fire_test_vgg16_good.pth"
+PATH = "trained_model.pth"
 
 
 def main():

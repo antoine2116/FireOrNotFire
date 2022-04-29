@@ -6,7 +6,7 @@ from firenet import FireNet
 
 # Load model
 model = FireNet()
-model.load_state_dict(torch.load('fire_or_not_fire_test.pth'))
+model.load_state_dict(torch.load('trained_model.pth'))
 model.eval()
 
 
