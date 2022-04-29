@@ -12,7 +12,7 @@ model.eval()
 
 def evaluate_fire(image):
     '''
-    @input : PIL Imag
+    @input : PIL Image
     @returns : fire prob in percentage
     '''
 
@@ -22,7 +22,7 @@ def evaluate_fire(image):
                                                transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                      std=[0.229, 0.224, 0.225])])
 
-    # Transforms the image
+    # Transform image
     image = transform(image)[:3, :, :].unsqueeze(0)
 
     # Pass image through the CNN
@@ -31,7 +31,7 @@ def evaluate_fire(image):
     # Get prediction
     pred = torch.nn.functional.softmax(output)
 
-    # Converts the tensor value into percentage
+    # Convert the tensor value into percentage
     return pred[0][1].item() * 100
 
 
@@ -53,7 +53,7 @@ def main():
         # Copy frame into variable
         image = frame.copy()
 
-        # Convert frame inrto PIL Image
+        # Convert frame into PIL Image
         image = transforms.ToPILImage()(image)
 
         # Get fire probability

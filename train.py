@@ -27,14 +27,14 @@ def main():
     train_data = ImageFolder('Dataset', transform=transform)
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, drop_last=False)
 
-    # Load valididation data
+    # Load validation data
     valid_data = ImageFolder('Test_Dataset', transform=transform)
     valid_loader = DataLoader(valid_data, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, drop_last=False)
 
     # Declare model
     model = FireNet()
 
-    # Using CUDA device
+    # Use CUDA device
     model = model.cuda()
 
     # Loss Function
@@ -62,7 +62,6 @@ def main():
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
             # Load images to device
-
             data, target = data.cuda(), target.cuda()
             optimizer.zero_grad()
 
@@ -78,7 +77,7 @@ def main():
 
             optimizer.step()
 
-            # Batch Statistics
+            # Batch statistics
             train_accuracy = train_accuracy + torch.sum(preds == target.data)
             train_loss = train_loss + ((1 / (batch_idx + 1)) * (loss.data - train_loss))
 
@@ -97,11 +96,11 @@ def main():
             # Loss calculation
             loss = criterion(output, target)
 
-            # Batch Statistics
+            # Batch statistics
             valid_accuracy = valid_accuracy + torch.sum(preds == target.data)
             valid_loss = valid_loss + ((1 / (batch_idx + 1)) * (loss.data - valid_loss))
 
-        # Epcohs Statistics
+        # Epcohs statistics
         train_loss = train_loss / len(train_loader.dataset)
         valid_loss = valid_loss / len(valid_loader.dataset)
         train_accuracy = train_accuracy / len(train_loader.dataset)
