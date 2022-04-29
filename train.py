@@ -100,7 +100,8 @@ def main():
             valid_accuracy = valid_accuracy + torch.sum(preds == target.data)
             valid_loss = valid_loss + ((1 / (batch_idx + 1)) * (loss.data - valid_loss))
 
-        # Epcohs statistics
+        # Epochs statistics
+
         train_loss = train_loss / len(train_loader.dataset)
         valid_loss = valid_loss / len(valid_loader.dataset)
         train_accuracy = train_accuracy / len(train_loader.dataset)
@@ -127,19 +128,23 @@ def main():
             torch.save(model.state_dict(), PATH)
             min_valid_loss = valid_loss
 
+        xmaxval = int(epoch - 1) if epoch != 1 else 1
+
         # Accuracy plot
         plt.figure()
-        plt.plot(train_accuracies, label="Train accuracy")
-        plt.plot(valid_accuracies, label="Validation accuracy")
+        plt.plot(train_accuracies, label="Train accuracy", marker ="o")
+        plt.plot(valid_accuracies, label="Validation accuracy", marker ="o")
         plt.xlabel("Epoch #")
+        plt.xlim([0, xmaxval])
         plt.legend()
         plt.show()
 
         # Loss plot
         plt.figure()
-        plt.plot(train_losses, label="Train loss")
-        plt.plot(valid_losses, label="Valid loss")
+        plt.plot(train_losses, label="Train loss", marker ="o")
+        plt.plot(valid_losses, label="Valid loss", marker ="o")
         plt.xlabel("Epoch #")
+        plt.xlim([0, xmaxval])
         plt.legend()
 
         plt.show()
